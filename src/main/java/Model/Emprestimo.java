@@ -6,7 +6,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import Util.ConexaoBancoDeDados;
-import Model.Livros;
 
 public class Emprestimo {
     private Livros livro;
@@ -95,12 +94,11 @@ public class Emprestimo {
 
             connection.setAutoCommit(false);
 
-            String inserirEmprestimoSQL = "INSERT INTO emprestimo_livro (cod_livro, numero_cartao, data_emprestimo, data_devolucao) VALUES (?, ?, ?, ?)";
+            String inserirEmprestimoSQL = "INSERT INTO emprestimo_livro (cod_livro, numero_cartao, data_emprestimo) VALUES (?, ?, ?)";
             stmt = connection.prepareStatement(inserirEmprestimoSQL);
             stmt.setInt(1, livro.getCodigoLivro());
             stmt.setInt(2, usuario.getNumeroCartao());
             stmt.setDate(3, new java.sql.Date(dataEmprestimo.getTime()));
-            stmt.setDate(4, new java.sql.Date(dataDevolucao.getTime()));
             stmt.executeUpdate();
 
             // Efetiva a persistencia, confirmando todas as operações
@@ -136,6 +134,59 @@ public class Emprestimo {
                 closeException.printStackTrace();
             }
         }
+    }
+
+    public void finalizarEmprestimo() {
+        Connection  connection = null;
+        PreparedStatement stmt = null;
+        ResultSet generatedKeys = null;
+
+        try {
+            connection = ConexaoBancoDeDados.getConnection();
+
+            connection.setAutoCommit(false);
+
+            String finalizarEmprestimoSQL = "UPDATE emprestimo_livro SET data_devolucao = ?, valor_multa = ? WHERE cod_livro = ? AND numero_cartao= ?";
+            stmt = connection.prepareStatement(finalizarEmprestimoSQL);
+            stmt.setDate(1, new java.sql.Date(dataDevolucao.getTime()));
+            stmt.setDouble(2, calcularMulta());
+            stmt.setInt(3, livro.getCodigoLivro());
+            stmt.setInt(4, usuario.getNumeroCartao());
+            stmt.executeUpdate();
+
+            connection.commit();
+
+            System.out.println("Devolução cadastrado com sucesso no banco de dados.");
+        } catch (SQLException e) {
+            // Em caso de erro, faz rolback da transação
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException rollbackException) {
+                rollbackException.printStackTrace();
+            }
+
+            System.err.println("Erro ao cadastrar a devolução no banco de dados.");
+            e.printStackTrace();
+        } finally {
+            // Restaura o autocomit padrão e fecha as conexôes
+            try {
+                if (connection != null) {
+                    connection.setAutoCommit(true);
+                    connection.close();
+                }
+                if (stmt != null) {
+                    stmt.close();
+                }
+                if (generatedKeys != null) {
+                    generatedKeys.close();
+                }
+            } catch (SQLException closeException) {
+                closeException.printStackTrace();
+            }
+        }
+
     }
 
     public static void carregarEmprestimosBanco(List<Emprestimo> emprestimoList) {
@@ -186,7 +237,7 @@ public class Emprestimo {
         }
     }
 
-    public static List<Emprestimo> obterEmprestimosUsuarios(Usuario usuario) {
+    public static List<Emprestimo> obterEmprestimosUsuarios(Usuario usuario, List<Emprestimo> emprestimoList) {
         List<Emprestimo> emprestimosUsuario = new ArrayList<>();
         for (Emprestimo e : emprestimoList) {
             if (e.getUsuario().equals(usuario)) {

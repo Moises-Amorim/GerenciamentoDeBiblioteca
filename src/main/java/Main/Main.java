@@ -4,7 +4,8 @@ import Model.Livros;
 import Model.Usuario;
 import Model.Emprestimo;
 import Util.ConexaoBancoDeDados;
-import java.sql.Connection;
+import java.sql.*;
+import java.sql.Date;
 import java.util.*;
 
 public class Main {
@@ -371,21 +372,38 @@ public class Main {
 
                     // Se o usuário foi encontrado, verifica se há empréstimos ativos
                     if (usuarioConsulta != null){
-                        List<Emprestimo> emprestimosUsuario = Emprestimo.obterEmprestimosUsuarios(usuarioConsulta, emprestimoList);
-                        if (emprestimosUsuario.isEmpty()) {
+                        List<Emprestimo> emprestimosAtivos = Emprestimo.obterEmprestimosAtivos(emprestimoList);
+
+                        if (emprestimosAtivos.isEmpty()) {
                             System.out.println("O usuario não tem empréstimos ativos");
                         } else {
-                            System.out.println("O usuário não tem empréstimos ativos");
-                            for (int i = 0; i < emprestimosUsuario.size(); i++) {
-                                System.out.println((i+1) + " - Livro: " + emprestimosUsuario.get(i).getLivro().getTitulo());
+                            System.out.println("Selecione o empréstimo que deseja finalizar");
+                            //Caso o usuário tenha empréstimos ativos, é incrementado essa lista com todos empréstimos
+                            for (int i = 0; i < emprestimosAtivos.size(); i++) {
+                                Emprestimo emprestimo = emprestimosAtivos.get(i);
+                                Livros livro = emprestimo.getLivro();
+                                if (livro != null) {
+                                    System.out.println((i+1) + " - Livro: " + livro.getTitulo());
+                                } else {
+                                    System.out.println((i+1) + " - Livro: null");
+                                }
+                                //System.out.println((i+1) + " - Livro: " + emprestimosUsuario.get(i).getLivro().getTitulo());
                                 /*System.out.println("Data de empréstimo: " + e.getDataEmprestimo());
                                 System.out.println("Data de devoluçao: " + e.getDataDevolucao());
                                 System.out.println("Multa por atraso: " + valorMulta);*/
                             }
                             int indiceEmprestimo = leitor.nextInt() - 1;
                             leitor.nextLine();
-                            Emprestimo emprestimoFinalizado = emprestimosUsuario.get(indiceEmprestimo);
-                            double valorMulta = emprestimoFinalizado.calcularMulta();
+                            Emprestimo emprestimoFinalizado = emprestimosAtivos.get(indiceEmprestimo);
+
+                            // Define a data de devolução manualmente
+                            System.out.println("Digite a data de devolução no formato YYYY-MM-DD");
+                            String dataDevolucaoStr = leitor.nextLine();
+                            Date dataDevolucao = Date.valueOf(dataDevolucaoStr);
+                            emprestimoFinalizado.setDataDevolucao(dataDevolucao);
+
+                            // Com data fornecida faz realiza o caálculo para fializar o empréstimo
+                            double valorMulta = emprestimoFinalizado.calcularMulta(dataDevolucao);
                             System.out.println("O valor da multa é: " + valorMulta);
                             System.out.println("Deseja confirmar o pagamento da multa e a devolução do livro? (s/n)");
                             String confirmacao = leitor.nextLine().toLowerCase();

@@ -113,7 +113,7 @@ public class Livros {
 
         try {
             connection = ConexaoBancoDeDados.getConnection();
-            connection.setAutoCommit(false);
+            connection.setAutoCommit(true);
 
             String carregarLivroSQL = "SELECT cod_livro, titulo, nome_autor, genero, nome_editora, qtde_copia FROM livro";
             stmt = connection.prepareStatement(carregarLivroSQL);
@@ -135,7 +135,6 @@ public class Livros {
         } finally {
             try {
                 if (connection != null) {
-                    connection.setAutoCommit(true);
                     connection.close();
                 }
                 if (stmt != null) {
@@ -199,8 +198,8 @@ public class Livros {
     public static Livros buscarLivro(int codigoLivro) {
         Connection connection = null;
         PreparedStatement stmt = null;
-        ResultSet resultSet;
-        List<Livros> livros = new ArrayList<>();
+        ResultSet resultSet = null;
+        //List<Livros> livros = new ArrayList<>();
 
         Livros livro = null;
         try {
@@ -222,7 +221,7 @@ public class Livros {
                 livro.setGenero(resultSet.getString("genero"));
                 livro.setEditora(resultSet.getString("nome_editora"));
                 livro.setQuantidadeCopias(resultSet.getInt("qtde_copia"));
-                livros.add(livro);
+                //livros.add(livro);
             }
 
             /*if (livroEncontrado > 0) {
@@ -242,6 +241,9 @@ public class Livros {
                 }
                 if (stmt != null) {
                     stmt.close();
+                }
+                if (resultSet != null) {
+                    resultSet.close();
                 }
             } catch (SQLException closeException) {
                 closeException.printStackTrace();

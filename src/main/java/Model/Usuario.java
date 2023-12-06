@@ -32,6 +32,18 @@ public class Usuario {
         this.telefoneUsuario = telefoneUsuario;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Usuario usuario = (Usuario) obj;
+        return numeroCartao == usuario.numeroCartao;
+    }
+
     public void salvarUsuario() {
         // Define a consulta SQL para inserir um usuario na tabela
         Connection connection = null;
@@ -94,7 +106,7 @@ public class Usuario {
 
         try {
             connection = ConexaoBancoDeDados.getConnection();
-            connection.setAutoCommit(false);
+            connection.setAutoCommit(true);
 
             String carregarUsuarioSQL = "SELECT numero_cartao, nome_usuario, telefone, email FROM usuario";
             stmt = connection.prepareStatement(carregarUsuarioSQL);
@@ -114,7 +126,6 @@ public class Usuario {
         } finally {
             try {
                 if (connection != null) {
-                    connection.setAutoCommit(true);
                     connection.close();
                 }
                 if (stmt != null) {
@@ -177,8 +188,8 @@ public class Usuario {
     public static Usuario buscarUsuario(int numeroCartao) {
         Connection connection = null;
         PreparedStatement stmt = null;
-        ResultSet resultSet;
-        List<Usuario> usuarios = new ArrayList<>();
+        ResultSet resultSet = null;
+        //List<Usuario> usuarios = new ArrayList<>();
 
 
         Usuario usuario = null;
@@ -199,7 +210,7 @@ public class Usuario {
                 usuario.setNomeUsuario(resultSet.getString("nome_usuario"));
                 usuario.setTelefoneUsuario(resultSet.getString("telefone"));
                 usuario.setTelefoneUsuario(resultSet.getString("email"));
-                usuarios.add(usuario);
+                //usuarios.add(usuario);
             }
 
             /*if (livroEncontrado > 0) {
@@ -218,6 +229,9 @@ public class Usuario {
                 }
                 if (stmt != null) {
                     stmt.close();
+                }
+                if (resultSet != null) {
+                    resultSet.close();
                 }
             } catch (SQLException closeException) {
                 closeException.printStackTrace();

@@ -72,29 +72,25 @@ public class Emprestimo {
         this.valorMulta = valorMulta;
     }
 
-    /*private Date calcularDataDevolucao() {
-        LocalDate dataDevolucaoLocalDate = LocalDate.now().plusDays(7); // Adiciona 7 dias à data atual
-        return Date.valueOf(dataDevolucaoLocalDate);
-    }*/
+    public double calcularMulta(Date dataDevolucaoManual) {
+        LocalDate dataEmprestimoLocalDate = dataEmprestimo.toLocalDate().plusDays(14);
+        LocalDate dataAtual = dataDevolucaoManual.toLocalDate();
 
-    public double calcularMulta(Date dataDevolucao) {
-        LocalDate dataAtual = LocalDate.now();
-        LocalDate dataDevolucaoLocalDate =  dataDevolucao.toLocalDate();
+        if (dataAtual.isAfter(dataEmprestimoLocalDate)) {
+            long diasAtraso = ChronoUnit.DAYS.between(dataEmprestimoLocalDate, dataAtual);
 
-        if (dataAtual.isAfter(dataDevolucaoLocalDate)) {
-            long diasAtraso = ChronoUnit.DAYS.between(dataDevolucaoLocalDate, dataAtual);
-
-            if (diasAtraso >= 5 ) {
-                return diasAtraso * 0.50; // Multa de 50 centavos por dias
-            } else if (diasAtraso >= 10) {
-                return diasAtraso * 1; // Multa de 1 real por dia
+            if (diasAtraso < 5) {
+                return diasAtraso * 0.50; // Multa de 50 centavos por dia para atrasos de menos de 5 dias
+            } else if (diasAtraso < 11) {
+                return diasAtraso * 1; // Multa de 1 real por dia de atrasos de 5 a 10 dias
             } else {
-                return diasAtraso * 5; // Multa de 5 reais por dia
+                return diasAtraso * 5; // Multa de 5 reais por dia para atrasos de 10 dias ou mais
             }
         } else {
             return 0; // Sem multa se o livro for devolvido no prazo
         }
     }
+
 
     public void salvarEmprestimo() {
         Connection connection = null;
@@ -203,14 +199,14 @@ public class Emprestimo {
 
     }
 
-    public static void carregarEmprestimosBanco(List<Emprestimo> emprestimoList) {
+    public static void carregarEmprestimosBanco(List<Emprestimo> loanList) {
         Connection connection = null;
         PreparedStatement stmt = null;
         ResultSet resultSet = null;
 
         try {
             connection = ConexaoBancoDeDados.getConnection();
-            connection.setAutoCommit(false);
+            connection.setAutoCommit(true);
 
             String carregarEmprestimosSQL = "SELECT cod_livro, numero_cartao, data_emprestimo, data_devolucao, valor_multa FROM emprestimo_livro";
             stmt = connection.prepareStatement(carregarEmprestimosSQL);
@@ -222,15 +218,21 @@ public class Emprestimo {
                 int codigoLivro = resultSet.getInt("cod_livro");
                 int numeroCartao = resultSet.getInt("numero_cartao");
 
+                System.out.println(codigoLivro);
+                System.out.println(numeroCartao);
+
                 Livros livro = Livros.buscarLivro(codigoLivro);
                 Usuario usuario = Usuario.buscarUsuario(numeroCartao);
+
+                System.out.println(codigoLivro);
+                System.out.println(numeroCartao);
 
                 Emprestimo emprestimo = new Emprestimo(livro, usuario);
 
                 emprestimo.setDataEmprestimo(resultSet.getDate("data_emprestimo"));
                 emprestimo.setDataDevolucao(resultSet.getDate("data_devolucao"));
                 emprestimo.setValorMulta(resultSet.getDouble("valor_multa"));
-                emprestimoList.add(emprestimo);
+                loanList.add(emprestimo);
             }
             System.out.println("Dados carregados com sucesso!");
         } catch (SQLException e) {
@@ -239,7 +241,6 @@ public class Emprestimo {
         } finally {
             try {
                 if (connection != null) {
-                    connection.setAutoCommit(true);
                     connection.close();
                 }
                 if (stmt != null) {
@@ -254,20 +255,10 @@ public class Emprestimo {
         }
     }
 
-    /*public static List<Emprestimo> obterEmprestimosUsuarios(Usuario usuario, List<Emprestimo> emprestimoList) {
-        List<Emprestimo> emprestimosUsuario = new ArrayList<>();
-        for (Emprestimo e : emprestimoList) {
-            if (e.getUsuario().getNumeroCartao() == usuario.getNumeroCartao()) {
-                emprestimosUsuario.add(e);
-            }
-        }
-        return emprestimosUsuario;
-    }*/
-
-    public static List<Emprestimo> obterEmprestimosAtivos(List<Emprestimo> emprestimoList) {
+    public static List<Emprestimo> obterEmprestimosAtivos(Usuario usuario, List<Emprestimo> emprestimoList) {
         List<Emprestimo> emprestimosAtivos = new ArrayList<>();
         for (Emprestimo emprestimo : emprestimoList) {
-            if (!emprestimo.isFinalizado() && emprestimo.getDataDevolucao() == null) {
+            if (emprestimo.getUsuario().equals(usuario) && !emprestimo.isFinalizado() && emprestimo.getDataDevolucao() == null) {
                 emprestimosAtivos.add(emprestimo);
             }
         }

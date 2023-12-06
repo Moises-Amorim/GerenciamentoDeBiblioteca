@@ -202,7 +202,7 @@ public class Livros {
         ResultSet resultSet;
         List<Livros> livros = new ArrayList<>();
 
-
+        Livros livro = null;
         try {
             connection = ConexaoBancoDeDados.getConnection();
             connection.setAutoCommit(false);
@@ -215,7 +215,7 @@ public class Livros {
             resultSet = stmt.executeQuery();
 
             while (resultSet.next()) {
-                Livros livro = new Livros();
+                livro = new Livros();
                 livro.setCodigoLivro(resultSet.getInt("cod_livro"));
                 livro.setTitulo(resultSet.getString("titulo"));
                 livro.setAutor(resultSet.getString("nome_autor"));
@@ -247,7 +247,7 @@ public class Livros {
                 closeException.printStackTrace();
             }
         }
-        return null;
+        return livro;
     }
 
     public void atualizarLivro() {

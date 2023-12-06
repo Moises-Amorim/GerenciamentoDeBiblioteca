@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import Util.ConexaoBancoDeDados;
 
+import javax.swing.text.DateFormatter;
+
 public class Emprestimo {
     private Livros livro;
     private Usuario usuario;
@@ -14,12 +16,22 @@ public class Emprestimo {
     private Date dataDevolucao;
     private double valorMulta;
 
+    private boolean finalizado;
+
     //Constructor
     public Emprestimo(Livros livro, Usuario usuario) {
         this.livro = livro;
         this.usuario = usuario;
         this.dataEmprestimo = Date.valueOf(LocalDate.now());
-        this.dataDevolucao = calcularDataDevolucao();
+        this.finalizado = false;
+        //this.dataDevolucao = calcularDataDevolucao();
+    }
+
+    public Emprestimo(Livros livro, Usuario usuario, Date dataDevolucao) {
+        this.livro = livro;
+        this.usuario = usuario;
+        this.dataEmprestimo = Date.valueOf(LocalDate.now());
+        this.dataDevolucao = dataDevolucao;
     }
 
     //Getters
@@ -60,21 +72,21 @@ public class Emprestimo {
         this.valorMulta = valorMulta;
     }
 
-    private Date calcularDataDevolucao() {
+    /*private Date calcularDataDevolucao() {
         LocalDate dataDevolucaoLocalDate = LocalDate.now().plusDays(7); // Adiciona 7 dias à data atual
         return Date.valueOf(dataDevolucaoLocalDate);
-    }
+    }*/
 
-    public double calcularMulta() {
+    public double calcularMulta(Date dataDevolucao) {
         LocalDate dataAtual = LocalDate.now();
         LocalDate dataDevolucaoLocalDate =  dataDevolucao.toLocalDate();
 
         if (dataAtual.isAfter(dataDevolucaoLocalDate)) {
             long diasAtraso = ChronoUnit.DAYS.between(dataDevolucaoLocalDate, dataAtual);
 
-            if (diasAtraso <=5 ) {
+            if (diasAtraso >= 5 ) {
                 return diasAtraso * 0.50; // Multa de 50 centavos por dias
-            } else if (diasAtraso <= 10) {
+            } else if (diasAtraso >= 10) {
                 return diasAtraso * 1; // Multa de 1 real por dia
             } else {
                 return diasAtraso * 5; // Multa de 5 reais por dia
@@ -149,7 +161,7 @@ public class Emprestimo {
             String finalizarEmprestimoSQL = "UPDATE emprestimo_livro SET data_devolucao = ?, valor_multa = ? WHERE cod_livro = ? AND numero_cartao= ?";
             stmt = connection.prepareStatement(finalizarEmprestimoSQL);
             stmt.setDate(1, new java.sql.Date(dataDevolucao.getTime()));
-            stmt.setDouble(2, calcularMulta());
+            stmt.setDouble(2, calcularMulta(dataDevolucao));
             stmt.setInt(3, livro.getCodigoLivro());
             stmt.setInt(4, usuario.getNumeroCartao());
             stmt.executeUpdate();
@@ -157,6 +169,8 @@ public class Emprestimo {
             connection.commit();
 
             System.out.println("Devolução cadastrado com sucesso no banco de dados.");
+
+            this.finalizado = true;
         } catch (SQLException e) {
             // Em caso de erro, faz rolback da transação
             try {
@@ -198,9 +212,11 @@ public class Emprestimo {
             connection = ConexaoBancoDeDados.getConnection();
             connection.setAutoCommit(false);
 
-            String careegarEmprestimosSQL = "SELECT cod_livro, numero_cartao, data_emprestimo, data_devolucao, valor_multa FROM emprestimo_livro";
-            stmt = connection.prepareStatement(careegarEmprestimosSQL);
+            String carregarEmprestimosSQL = "SELECT cod_livro, numero_cartao, data_emprestimo, data_devolucao, valor_multa FROM emprestimo_livro";
+            stmt = connection.prepareStatement(carregarEmprestimosSQL);
             resultSet = stmt.executeQuery();
+
+            System.out.println("Dados carregando...!");
 
             while (resultSet.next()) {
                 int codigoLivro = resultSet.getInt("cod_livro");
@@ -216,6 +232,7 @@ public class Emprestimo {
                 emprestimo.setValorMulta(resultSet.getDouble("valor_multa"));
                 emprestimoList.add(emprestimo);
             }
+            System.out.println("Dados carregados com sucesso!");
         } catch (SQLException e) {
             System.err.println("Erro ao careegar os dados de empréstimos so banco de dados");
             e.printStackTrace();
@@ -237,13 +254,27 @@ public class Emprestimo {
         }
     }
 
-    public static List<Emprestimo> obterEmprestimosUsuarios(Usuario usuario, List<Emprestimo> emprestimoList) {
+    /*public static List<Emprestimo> obterEmprestimosUsuarios(Usuario usuario, List<Emprestimo> emprestimoList) {
         List<Emprestimo> emprestimosUsuario = new ArrayList<>();
         for (Emprestimo e : emprestimoList) {
-            if (e.getUsuario().equals(usuario)) {
+            if (e.getUsuario().getNumeroCartao() == usuario.getNumeroCartao()) {
                 emprestimosUsuario.add(e);
             }
         }
         return emprestimosUsuario;
+    }*/
+
+    public static List<Emprestimo> obterEmprestimosAtivos(List<Emprestimo> emprestimoList) {
+        List<Emprestimo> emprestimosAtivos = new ArrayList<>();
+        for (Emprestimo emprestimo : emprestimoList) {
+            if (!emprestimo.isFinalizado() && emprestimo.getDataDevolucao() == null) {
+                emprestimosAtivos.add(emprestimo);
+            }
+        }
+        return emprestimosAtivos;
+    }
+
+    public boolean isFinalizado() {
+        return finalizado;
     }
 }

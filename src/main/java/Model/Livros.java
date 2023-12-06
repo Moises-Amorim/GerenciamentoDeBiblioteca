@@ -335,4 +335,9 @@ public class Livros {
         atualizarLivro();
     }
 
+    public void icrementarQuantidadeCopias() {
+        setQuantidadeCopias(getQuantidadeCopias() + 1);
+        atualizarLivro();
+    }
+
 }

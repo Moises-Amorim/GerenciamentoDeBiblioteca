@@ -369,18 +369,34 @@ public class Main {
                         }
                     }
 
-                    // Se o usuário foi encontrado, verifica se há empréstimos e calcula a multa
+                    // Se o usuário foi encontrado, verifica se há empréstimos ativos
                     if (usuarioConsulta != null){
-                        List<Emprestimo> emprestimosUsuario = Emprestimo.obterEmprestimosUsuarios(usuarioConsulta);
+                        List<Emprestimo> emprestimosUsuario = Emprestimo.obterEmprestimosUsuarios(usuarioConsulta, emprestimoList);
                         if (emprestimosUsuario.isEmpty()) {
                             System.out.println("O usuario não tem empréstimos ativos");
                         } else {
-                            for (Emprestimo e : emprestimosUsuario) {
-                                double valorMulta = e.calcularMulta();
-                                System.out.println("Empréstimo do livro " + e.getLivro().getTitulo() + ":");
-                                System.out.println("Data de empréstimo: " + e.getDataEmprestimo());
+                            System.out.println("O usuário não tem empréstimos ativos");
+                            for (int i = 0; i < emprestimosUsuario.size(); i++) {
+                                System.out.println((i+1) + " - Livro: " + emprestimosUsuario.get(i).getLivro().getTitulo());
+                                /*System.out.println("Data de empréstimo: " + e.getDataEmprestimo());
                                 System.out.println("Data de devoluçao: " + e.getDataDevolucao());
-                                System.out.println("Multa por atraso: " + valorMulta);
+                                System.out.println("Multa por atraso: " + valorMulta);*/
+                            }
+                            int indiceEmprestimo = leitor.nextInt() - 1;
+                            leitor.nextLine();
+                            Emprestimo emprestimoFinalizado = emprestimosUsuario.get(indiceEmprestimo);
+                            double valorMulta = emprestimoFinalizado.calcularMulta();
+                            System.out.println("O valor da multa é: " + valorMulta);
+                            System.out.println("Deseja confirmar o pagamento da multa e a devolução do livro? (s/n)");
+                            String confirmacao = leitor.nextLine().toLowerCase();
+                            if (confirmacao.equalsIgnoreCase("s")) {
+                                emprestimoFinalizado.finalizarEmprestimo();
+                                Livros livroDevolvido = emprestimoFinalizado.getLivro();
+                                livroDevolvido.icrementarQuantidadeCopias();
+                                emprestimoList.remove(emprestimoFinalizado);
+                                System.out.println("Devolução registrada com sucesso.");
+                            } else {
+                                System.out.println("Devolução cancelada");
                             }
                         }
                     } else {

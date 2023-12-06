@@ -181,6 +181,7 @@ public class Usuario {
         List<Usuario> usuarios = new ArrayList<>();
 
 
+        Usuario usuario = null;
         try {
             connection = ConexaoBancoDeDados.getConnection();
             connection.setAutoCommit(false);
@@ -193,7 +194,7 @@ public class Usuario {
             resultSet = stmt.executeQuery();
 
             while (resultSet.next()) {
-                Usuario usuario = new Usuario();
+                usuario = new Usuario();
                 usuario.setNumeroCartao(resultSet.getInt("numero_cartao"));
                 usuario.setNomeUsuario(resultSet.getString("nome_usuario"));
                 usuario.setTelefoneUsuario(resultSet.getString("telefone"));
@@ -209,8 +210,7 @@ public class Usuario {
         } catch (SQLException e) {
             System.err.println("Erro ao apagar o livro no banco de dados.");
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             try {
                 if (connection != null) {
                     connection.setAutoCommit(true);
@@ -223,7 +223,7 @@ public class Usuario {
                 closeException.printStackTrace();
             }
         }
-        return null;
+        return usuario;
     }
 
     public void atualizarUsuario() {

@@ -4,15 +4,20 @@ import Model.Livros;
 import Model.Usuario;
 import Model.Emprestimo;
 import Util.ConexaoBancoDeDados;
+
 import java.sql.*;
 import java.sql.Date;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
 
         Connection connection = ConexaoBancoDeDados.getConnection();
-        Scanner leitor = new Scanner(System.in); leitor.useLocale(Locale.US);
+        Scanner leitor = new Scanner(System.in);
+        leitor.useLocale(Locale.US);
+
+        ConexaoBancoDeDados.testarConexao();
 
         // Criando ArrayLists para armazenar os livros cadastrados
         List<Livros> livrosList = new ArrayList<>();
@@ -99,7 +104,7 @@ public class Main {
                             List<Livros> livrosCadastrados = Livros.obterTodosOsLivros();
                             System.out.println("livros Cadastrados:\n");
                             for (Livros l : livrosCadastrados) {
-                                System.out.println("Detalhes dos Livros Cadastrados:");
+                                System.out.println("\nDetalhes dos Livros Cadastrados:");
                                 System.out.println("Codigo:" + l.getCodigoLivro());
                                 System.out.println("Nome: " + l.getTitulo());
                                 System.out.println("Autor/Autora: " + l.getAutor());
@@ -115,6 +120,8 @@ public class Main {
                             int buscarLivroId = leitor.nextInt();
                             leitor.nextLine(); // Consome a nova linha pendente após leitor.nextInt()
 
+                            boolean livroEncontrado = false;
+
                             for (Livros l : livrosList) {
                                 if (l.getCodigoLivro() == buscarLivroId) {
                                     Livros.buscarLivro(l.getCodigoLivro());
@@ -125,11 +132,14 @@ public class Main {
                                     System.out.println("Tipo(gênero do livro " + l.getGenero());
                                     System.out.println("Editora: " + l.getEditora());
                                     System.out.println("Quantidade em estoque: " + l.getQuantidadeCopias());
+                                    livroEncontrado = true;
                                     break;
-                                } else {
-                                    System.out.println("Não foi encontrado nenhum livro com o código informado");
                                 }
                             }
+                            if (!livroEncontrado) {
+                                System.out.println("Não foi encontrado nenhum livro com o código informado");
+                            }
+
                             break;
 
                         case 4:
@@ -247,9 +257,11 @@ public class Main {
                             break;
                         case 3:
                             // Filtrar usuario por numero cartão
-                            System.out.println("Digite o código do livro");
+                            System.out.println("Digite o numero do cartão do usuário");
                             int buscarUsuarioId = leitor.nextInt();
                             leitor.nextLine(); // Consome a nova linha pendente após leitor.nextInt()
+
+                            boolean usuarioEncontrado = false;
 
                             for (Usuario u : usuarioList) {
                                 if (u.getNumeroCartao() == buscarUsuarioId) {
@@ -259,10 +271,13 @@ public class Main {
                                     System.out.println("Nome: " + u.getNomeUsuario());
                                     System.out.println("Telefone: " + u.getTelefoneUsuario());
                                     System.out.println("Email: " + u.getEmail());
+                                    usuarioEncontrado = true;
                                     break;
-                                } else {
-                                    System.out.println("Não foi encontrado nenhum usuario com o numero de cartão informado");
                                 }
+                            }
+
+                            if (!usuarioEncontrado) {
+                                System.out.println("Não foi encontrado nenhum usuario com o numero de cartão informado");
                             }
 
                             break;
@@ -286,7 +301,7 @@ public class Main {
 
                                     u.atualizarUsuario();
 
-                                    System.out.println("Livro editado com sucesso.");
+                                    System.out.println("Dados do usuario editado com sucesso.");
                                     break;
                                 }
                             }
@@ -348,9 +363,9 @@ public class Main {
 
                     if (livroSelecionado != null && usuarioSelecionado != null) {
                         Emprestimo emprestimo = new Emprestimo(livroSelecionado, usuarioSelecionado);
-                        emprestimo.salvarEmprestimo();
                         emprestimoList.add(emprestimo);
                         livroSelecionado.decrementarQuantidadeCopias();
+                        emprestimo.salvarEmprestimo();
                         System.out.println("Empréstimo realizado com sucesso.");
                     } else {
                         System.out.println("Livro ou usuario não encontrado");
@@ -371,8 +386,8 @@ public class Main {
                     }
 
                     // Se o usuário foi encontrado, verifica se há empréstimos ativos
-                    if (usuarioConsulta != null){
-                        List<Emprestimo> emprestimosAtivos = Emprestimo.obterEmprestimosAtivos(emprestimoList);
+                    if (usuarioConsulta != null) {
+                        List<Emprestimo> emprestimosAtivos = Emprestimo.obterEmprestimosAtivos(usuarioConsulta, emprestimoList);
 
                         if (emprestimosAtivos.isEmpty()) {
                             System.out.println("O usuario não tem empréstimos ativos");
@@ -383,38 +398,38 @@ public class Main {
                                 Emprestimo emprestimo = emprestimosAtivos.get(i);
                                 Livros livro = emprestimo.getLivro();
                                 if (livro != null) {
-                                    System.out.println((i+1) + " - Livro: " + livro.getTitulo());
+                                    System.out.println((i + 1) + " - Livro: " + livro.getTitulo());
                                 } else {
-                                    System.out.println((i+1) + " - Livro: null");
+                                    System.out.println((i + 1) + " - Livro: null");
                                 }
-                                //System.out.println((i+1) + " - Livro: " + emprestimosUsuario.get(i).getLivro().getTitulo());
-                                /*System.out.println("Data de empréstimo: " + e.getDataEmprestimo());
-                                System.out.println("Data de devoluçao: " + e.getDataDevolucao());
-                                System.out.println("Multa por atraso: " + valorMulta);*/
                             }
                             int indiceEmprestimo = leitor.nextInt() - 1;
                             leitor.nextLine();
                             Emprestimo emprestimoFinalizado = emprestimosAtivos.get(indiceEmprestimo);
 
-                            // Define a data de devolução manualmente
-                            System.out.println("Digite a data de devolução no formato YYYY-MM-DD");
-                            String dataDevolucaoStr = leitor.nextLine();
-                            Date dataDevolucao = Date.valueOf(dataDevolucaoStr);
-                            emprestimoFinalizado.setDataDevolucao(dataDevolucao);
+                            try {
+                                // Define a data de devolução manualmente
+                                System.out.println("Digite a data de devolução no formato YYYY-MM-DD");
+                                String dataDevolucaoStr = leitor.nextLine();
+                                Date dataDevolucao = Date.valueOf(dataDevolucaoStr);
+                                emprestimoFinalizado.setDataDevolucao(dataDevolucao);
 
-                            // Com data fornecida faz realiza o caálculo para fializar o empréstimo
-                            double valorMulta = emprestimoFinalizado.calcularMulta(dataDevolucao);
-                            System.out.println("O valor da multa é: " + valorMulta);
-                            System.out.println("Deseja confirmar o pagamento da multa e a devolução do livro? (s/n)");
-                            String confirmacao = leitor.nextLine().toLowerCase();
-                            if (confirmacao.equalsIgnoreCase("s")) {
-                                emprestimoFinalizado.finalizarEmprestimo();
-                                Livros livroDevolvido = emprestimoFinalizado.getLivro();
-                                livroDevolvido.icrementarQuantidadeCopias();
-                                emprestimoList.remove(emprestimoFinalizado);
-                                System.out.println("Devolução registrada com sucesso.");
-                            } else {
-                                System.out.println("Devolução cancelada");
+                                // Com data fornecida faz realiza o caálculo para fializar o empréstimo
+                                double valorMulta = emprestimoFinalizado.calcularMulta(dataDevolucao);
+                                System.out.println("O valor da multa é: " + valorMulta);
+                                System.out.println("Deseja confirmar o pagamento da multa e a devolução do livro? (s/n)");
+                                String confirmacao = leitor.nextLine().toLowerCase();
+                                if (confirmacao.equalsIgnoreCase("s")) {
+                                    Livros livroDevolvido = emprestimoFinalizado.getLivro();
+                                    livroDevolvido.icrementarQuantidadeCopias();
+                                    emprestimoFinalizado.finalizarEmprestimo();
+                                    emprestimoList.remove(emprestimoFinalizado);
+                                    System.out.println("Devolução registrada com sucesso.");
+                                } else {
+                                    System.out.println("Devolução cancelada");
+                                }
+                            } catch (DateTimeParseException e) {
+                                System.out.println("Formato de data inválido. Use o formato YYYY-MM-DD.");
                             }
                         }
                     } else {
